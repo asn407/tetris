@@ -498,7 +498,7 @@ void Tetris::action()
     if (KeyPressed(KEY_INPUT_DOWN))  this->minoVy = 1;
     if (KeyPressed(KEY_INPUT_Z))     this->minoVr = -1;
     if (KeyPressed(KEY_INPUT_X))     this->minoVr = 1;
-    if (KeyPressed(KEY_INPUT_C))     this-> minoDrop = true;
+    if (KeyPressed(KEY_INPUT_C))     this->minoDrop = true;
     if ((this->frameCounter%20)==19) this->minoVy = 1;
 }
 
