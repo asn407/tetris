@@ -6,43 +6,47 @@
 #define MAX_X 12
 #define MAX_Y 20
 #define SOLID 2
-#define BLOCK 1
 #define NUM 4
 
-int intkey[256] = {0};
-char charkey[256] = {0};
-bool pushflag[256] = {0};
+int intKey[256] = {0};
+char charKey[256] = {0};
+bool pressFlag[256] = {0};
 
 void GetKey()
 {
-    GetHitKeyStateAll(charkey);
+    GetHitKeyStateAll(charKey);
     for (int i = 0; i < 256; i++)
     {
-        if (charkey[i] != 0)
+        if (charKey[i] != 0)
         {
-            intkey[i]++;
+            intKey[i]++;
         }
         else
         {
-            intkey[i] = 0;
+            intKey[i] = 0;
         }
     }
 }
 
-bool KeyPressed(int keyindex)
+bool KeyPressed(int keyIndex)
 {
-    if (intkey[keyindex] && !pushflag[keyindex])
+    if (intKey[keyIndex] && !pressFlag[keyIndex])
     {
-        pushflag[keyindex] = true;
+        pressFlag[keyIndex] = true;
         return true;
     }
 
-    if (!intkey[keyindex])
+    if (!intKey[keyIndex])
     {
-        pushflag[keyindex] = false;
+        pressFlag[keyIndex] = false;
     }
 
     return false;
+}
+
+void DrawBlock(int x, int y)
+{
+    DrawBox(SOLID+x*(SIZE+SOLID), SOLID+y*(SIZE+SOLID), (x+1)*(SIZE+SOLID), (y+1)*(SIZE+SOLID), GetColor(255, 255, 255), true);
 }
 
 void Window_Init()
@@ -53,11 +57,6 @@ void Window_Init()
     srand((unsigned)time(NULL));
 }
 
-void DrawBlock(int x, int y)
-{
-    DrawBox(SOLID+x*(SIZE+SOLID), SOLID+y*(SIZE+SOLID), (x+1)*(SIZE+SOLID), (y+1)*(SIZE+SOLID), GetColor(255, 255, 255), true);
-}
-
 class Block
 {
 public:
@@ -66,11 +65,30 @@ public:
     void rot();
 };
 
+/*
+コンストラクタ
+
+x, yはそれぞれ-1, 0, 1のみを格納する
+rot()メソッドより行列計算を行いやすくするため
+*/
+
 Block::Block(int x, int y)
 {
     this->x = x;
     this->y = y;
 }
+
+/*
+rot()メソッド
+
+回転行列より
+x' = xcosθ - ysinθ
+y' = xsinθ + ycosθ
+
+θ = 90 のとき
+x' = -y
+y' = x
+*/
 
 void Block::rot()
 {
@@ -183,7 +201,7 @@ class Board
 public:
     Board();
     ~Board();
-    void putBlock(int x, int y);
+    void setBlock(int x, int y);
     int getBlock(int x, int y);
     int findLineFilled();
     void cutLine(int y);
@@ -231,7 +249,7 @@ Board::Board()
     }
 }
 
-void Board::putBlock(int x, int y)
+void Board::setBlock(int x, int y)
 {
     this->board[y][x] = 1;
 }
@@ -308,14 +326,14 @@ private:
     Mino* mino;
     Board* board;
     int minoVx;
+    int minoVy;
     int minoVr;
-    bool minoVy;
     bool minoDrop;
     int frameCounter;
     void mainLoop();
     void update();
     bool isMinoMovable(Mino* futureMino);
-    void keySensor();
+    void action();
     Mino* makeNewMino();
 };
 
@@ -329,8 +347,8 @@ Tetris::Tetris()
     this->board = new Board;
     this->mino = this->makeNewMino();
     this->minoVx = 0;
+    this->minoVy = 0;
     this->minoVr = 0;
-    this->minoVy = false;
     this->minoDrop = false;
     this->frameCounter = 0;
 
@@ -350,8 +368,11 @@ void Tetris::mainLoop()
 void Tetris::update()
 {
     GetKey();
-    this->keySensor();
+    this->action();
 
+    //------------------------
+    // 落下（急降下）
+    //------------------------
     if (this->minoDrop)
     {
         Mino* futureMino = this->mino->copyMino();
@@ -365,10 +386,13 @@ void Tetris::update()
 
         this->mino->y += skipHeight - 1;
 
+        //------------------------
+        // 設置
+        //------------------------
         for (int i = 0; i < NUM; i++)
         {
             this->mino->rotMino(this->mino->block);
-            this->board->putBlock(this->mino->block[i]->x+this->mino->x, this->mino->block[i]->y+this->mino->y);
+            this->board->setBlock(this->mino->block[i]->x+this->mino->x, this->mino->block[i]->y+this->mino->y);
         }
 
         this->mino = this->makeNewMino();
@@ -377,21 +401,27 @@ void Tetris::update()
         delete futureMino;
     }
 
-    if (this->minoVy || (this->frameCounter % 20) == 19)
+    //------------------------
+    // 落下（コマ送り）
+    //------------------------
+    if (this->minoVy)
     {
         Mino* futureMino = this->mino->copyMino();
-        futureMino->y++;
+        futureMino->y += this->minoVy;
         
         if (this->isMinoMovable(futureMino))
         {
-            this->mino->y++;
+            this->mino->y += this->minoVy;
         }
         else
         {
+            //------------------------
+            // 設置
+            //------------------------
             for (int i = 0; i < NUM; i++)
             {
                 this->mino->rotMino(this->mino->block);
-                this->board->putBlock(this->mino->block[i]->x+this->mino->x, this->mino->block[i]->y+this->mino->y);
+                this->board->setBlock(this->mino->block[i]->x+this->mino->x, this->mino->block[i]->y+this->mino->y);
             }
 
             this->mino = this->makeNewMino();
@@ -403,10 +433,13 @@ void Tetris::update()
             this->board->cutLine(y);
         }
 
-        this->minoVy = false;
+        this->minoVy = 0;
         delete futureMino;
     }
 
+    //------------------------
+    // 左右移動
+    //------------------------
     if (this->minoVx)
     {
         Mino* futureMino = this->mino->copyMino();
@@ -421,6 +454,9 @@ void Tetris::update()
         delete futureMino;
     }
 
+    //------------------------
+    // 回転
+    //------------------------
     if (this->minoVr)
     {
         Mino* futureMino = this->mino->copyMino();
@@ -455,14 +491,15 @@ bool Tetris::isMinoMovable(Mino* futureMino)
     return true;
 }
 
-void Tetris::keySensor()
+void Tetris::action()
 {
     if (KeyPressed(KEY_INPUT_LEFT))  this->minoVx = -1;
     if (KeyPressed(KEY_INPUT_RIGHT)) this->minoVx = 1;
+    if (KeyPressed(KEY_INPUT_DOWN))  this->minoVy = 1;
     if (KeyPressed(KEY_INPUT_Z))     this->minoVr = -1;
     if (KeyPressed(KEY_INPUT_X))     this->minoVr = 1;
-    if (KeyPressed(KEY_INPUT_DOWN))  this->minoVy = true;
     if (KeyPressed(KEY_INPUT_C))     this-> minoDrop = true;
+    if ((this->frameCounter%20)==19) this->minoVy = 1;
 }
 
 Mino* Tetris::makeNewMino()
