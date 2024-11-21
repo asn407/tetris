@@ -138,7 +138,7 @@ Block::Block(int x, int y)
 /**
  * rot()メソッド
  *
- * 右回転のみを実現．
+ * 右回転のみを実現する．
  * 回転行列より
  * x_next = xcosθ - ysinθ
  * y_next = xsinθ + ycosθ
