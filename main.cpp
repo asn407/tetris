@@ -12,6 +12,18 @@ int intKey[256] = {0};
 char charKey[256] = {0};
 bool pressFlag[256] = {0};
 
+/**
+ * GetKey()関数
+ *
+ * DxLib.hで定義されている
+ * GetHitKeyStateAll()関数を実行し，
+ * charKeyに格納される入力キーの情報を
+ * intKeyに格納（int型に変換）する．
+ *
+ * @param なし
+ * @return なし
+ */
+
 void GetKey()
 {
     GetHitKeyStateAll(charKey);
@@ -27,6 +39,16 @@ void GetKey()
         }
     }
 }
+
+/**
+ * KeyPressed()関数
+ *
+ * 1Fにおいて，任意キーが押されたかを検知する．
+ * つまり，キーを押し続けても次フレームではfalseとなる．
+ *
+ * @param keyIndex DxLib.hで定義されたキー番号
+ * @return true false 1Fにおいて，任意キーが押されたかの真偽
+ */
 
 bool KeyPressed(int keyIndex)
 {
@@ -44,18 +66,51 @@ bool KeyPressed(int keyIndex)
     return false;
 }
 
+/**
+ * DrawBlock()関数
+ *
+ * 盤面の配列番号にブロックを描画する．
+ * テトリスのブロック描画のひな型となる．
+ *
+ * @param x, y テトリスにおける盤面の配列番号
+ * @return なし
+ */
+
 void DrawBlock(int x, int y)
 {
     DrawBox(SOLID+x*(SIZE+SOLID), SOLID+y*(SIZE+SOLID), (x+1)*(SIZE+SOLID), (y+1)*(SIZE+SOLID), GetColor(255, 255, 255), true);
 }
 
+/**
+ * Window_Init()関数
+ *
+ * ウィンドウに関する初期設定を行う．
+ * ちゃっかり疑似乱数の初期化も
+ * してるし結構ガバガバ．
+ *
+ * @param なし
+ * @return なし
+ */
+
 void Window_Init()
 {
+    // 裏画面にて描画更新をする
     SetDrawScreen(DX_SCREEN_BACK);
+    // ウィンドウタイトル
     SetWindowText("Tetris");
+    // ウィンドウの大きさ
     SetGraphMode(MAX_X*(SOLID+SIZE), MAX_Y*(SOLID+SIZE), 32);
+    // 疑似乱数の初期化
     srand((unsigned)time(NULL));
 }
+
+/**
+ * Blockクラス
+ *
+ * ブロックの情報を持つ．
+ * その場での回転を実現するため，
+ * x,yには-2,-1,0,1のみが入る．
+ */
 
 class Block
 {
@@ -65,12 +120,14 @@ public:
     void rot();
 };
 
-/*
-コンストラクタ
-
-x, yはそれぞれ-1, 0, 1のみを格納する
-rot()メソッドより行列計算を行いやすくするため
-*/
+/**
+ * Block()コンストラクタ
+ *
+ * 説明なし．
+ *
+ * @param x, y 原点におけるブロックの座標
+ * @return なし
+ */
 
 Block::Block(int x, int y)
 {
@@ -78,17 +135,20 @@ Block::Block(int x, int y)
     this->y = y;
 }
 
-/*
-rot()メソッド
-
-回転行列より
-x' = xcosθ - ysinθ
-y' = xsinθ + ycosθ
-
-θ = 90 のとき
-x' = -y
-y' = x
-*/
+/**
+ * rot()メソッド
+ *
+ * 右回転のみを実現．
+ * 回転行列より
+ * x_next = xcosθ - ysinθ
+ * y_next = xsinθ + ycosθ
+ * θ = 90 のとき
+ * x_next = -y
+ * y_next = x
+ *
+ * @param なし
+ * @return なし
+ */
 
 void Block::rot()
 {
@@ -96,6 +156,16 @@ void Block::rot()
     this->x = -1*this->y;
     this->y = tmp_x;
 }
+
+/**
+ * Minoクラス
+ *
+ * テトロミノの情報を持つ．
+ * x, y テトロミノの座標
+ * rot 回転状態
+ * shape 形状
+ * block[NUM] Blockクラスのオブジェクトx4
+ */
 
 class Mino
 {
@@ -109,6 +179,15 @@ public:
     void draw();
 };
 
+/**
+ * Mino()コンストラクタ
+ *
+ * 説明なし．
+ *
+ * @param x, y, rot, shape テトロミノの座標，回転状態，形状
+ * @return なし
+ */
+
 Mino::Mino(int x, int y, int rot, int shape)
 {
     this->x = x;
@@ -117,10 +196,31 @@ Mino::Mino(int x, int y, int rot, int shape)
     this->shape = shape;
 }
 
+/**
+ * copyMino()メソッド
+ *
+ * オブジェクトの複製を作成する．
+ *
+ * @param なし
+ * @return Minoオブジェクト オブジェクトの複製品
+ */
+
 Mino* Mino::copyMino()
 {
     return new Mino(this->x, this->y, this->rot, this->shape);
 }
+
+/**
+ * rotMino()メソッド
+ *
+ * テトロミノを回転させる．
+ * 回転には行列計算を用いる．
+ * 実行の度に，回転状態を計算する必要があるため，
+ * 毎回Blockオブジェクトを生成（上書き）する．
+ *
+ * @param block[] Blockオブジェクトが格納されている配列
+ * @return なし
+ */
 
 void Mino::rotMino(Block* block[])
 {
@@ -170,6 +270,14 @@ void Mino::rotMino(Block* block[])
         break;
     }
 
+    //------------------------
+    // 回転処理
+    // 右回転->this->rot++;
+    // 左回転->this->rot--;
+    // マイナスの値にも対応するため，
+    // (400 + this->rot) % 4を計算．
+    // -> 出た値だけ右回転する．
+    //------------------------
     for (int r = 0; r < (NUM * 100 + this->rot) % NUM; r++)
     {
         for (int i = 0; i < NUM; i++)
@@ -178,6 +286,18 @@ void Mino::rotMino(Block* block[])
         }
     }
 }
+
+/**
+ * draw()メソッド
+ *
+ * テトロミノを描画する．
+ * テトロミノの座標+各Blockオブジェクトの座標
+ * で任意の位置にテトロミノを描画する．
+ * 描画直前にテトロミノの回転処理をする．
+ *
+ * @param なし
+ * @return なし
+ */
 
 void Mino::draw()
 {
@@ -188,6 +308,15 @@ void Mino::draw()
     }
 }
 
+/**
+ * ~Mino()デストラクタ
+ *
+ * Blockオブジェクトを破棄する．
+ *
+ * @param なし
+ * @return なし
+ */
+
 Mino::~Mino()
 {
     for (int i = 0; i < NUM; i++)
@@ -195,6 +324,14 @@ Mino::~Mino()
         delete block[i];
     }
 }
+
+/**
+ * Boardクラス
+ *
+ * 盤面の情報を持つ．
+ * ブロックの設置に加え，
+ * 盤面のライン消去も行う．
+ */
 
 class Board
 {
@@ -232,13 +369,22 @@ private:
     };
 };
 
+/**
+ * Board()コンストラクタ
+ *
+ * 盤面の壁を生成する．
+ *
+ * @param なし
+ * @return なし
+ */
+
 Board::Board()
 {
     for (int y = 0; y < MAX_Y; y++)
     {
         for (int x = 0; x < MAX_X; x++)
         {
-            if (!board[y][x])
+            if (!this->board[y][x])
             {
                 block[y][x] = NULL;
                 continue;
@@ -249,15 +395,44 @@ Board::Board()
     }
 }
 
+/**
+ * setBlock()メソッド
+ *
+ * 任意の座標にブロックを設置する．
+ *
+ * @param x, y 盤面の配列番号
+ * @return なし
+ */
+
 void Board::setBlock(int x, int y)
 {
     this->board[y][x] = 1;
 }
 
+/**
+ * getBlock()メソッド
+ *
+ * 任意の座標の情報を取得する．
+ *
+ * @param x, y 盤面の配列番号
+ * @return 0 1 指定したマスがブロックなら1，空なら0
+ */
+
 int Board::getBlock(int x, int y)
 {
     return this->board[y][x];
 }
+
+/**
+ * findLineFilled()メソッド
+ *
+ * 盤面のすべてを探索し，
+ * 消去可能なラインが見つかれば
+ * その行番号を返却する．
+ *
+ * @param なし
+ * @return y, -1 消去可能な行が見つからなければ-1
+ */
 
 int Board::findLineFilled()
 {
@@ -281,6 +456,17 @@ int Board::findLineFilled()
     return -1;
 }
 
+/**
+ * cutLine()メソッド
+ *
+ * 指定した行番号の消去を実現する．
+ * 一つずつ全ての上段のブロックを
+ * 下げることで再現する．
+ *
+ * @param y 行番号
+ * @return なし
+ */
+
 void Board::cutLine(int y)
 {
     for (int dy = y; dy > 0; dy--)
@@ -291,6 +477,15 @@ void Board::cutLine(int y)
         }
     }
 }
+
+/**
+ * draw()メソッド
+ *
+ * 現在の盤面のブロックを描画する．
+ *
+ * @param なし
+ * @return なし
+ */
 
 void Board::draw()
 {
@@ -306,6 +501,15 @@ void Board::draw()
     }
 }
 
+/**
+ * ~Board()デストラクタ
+ *
+ * 盤面上のBlockオブジェクトを破棄する．
+ *
+ * @param なし
+ * @return なし
+ */
+
 Board::~Board()
 {
     for (int y = 0; y < MAX_Y; y++)
@@ -316,6 +520,12 @@ Board::~Board()
         }
     }
 }
+
+/**
+ * Tetrisクラス
+ *
+ * 本プログラムのメインクラス．
+ */
 
 class Tetris
 {
@@ -337,10 +547,22 @@ private:
     Mino* makeNewMino();
 };
 
+/**
+ * Tetris()コンストラクタ
+ *
+ * もろもろの初期設定を行う．
+ *
+ * @param なし
+ * @return なし
+ */
+
 Tetris::Tetris()
 {
+    // ゲーム実行時にLog.txtを生成しない
     SetOutApplicationLogValidFlag(false);
+    // フルスクリーンに設定しない
     ChangeWindowMode(true);
+    // DxLibの初期化
     DxLib_Init();
     Window_Init();
 
@@ -355,15 +577,42 @@ Tetris::Tetris()
     this->mainLoop();
 }
 
+/**
+ * mainLoop()メソッド
+ *
+ * 説明なし．
+ *
+ * @param なし
+ * @return なし
+ */
+
 void Tetris::mainLoop()
 {
+    // エラー or Escキー入力で終了
     while (!ProcessMessage() && !KeyPressed(KEY_INPUT_ESCAPE))
     {
+        // 画面を初期化
         ClearDrawScreen();
+        // テトリスゲームを更新
         this->update();
+        // スクリーンに反映
         ScreenFlip();
     }
 }
+
+/**
+ * update()メソッド
+ * 
+ * テトリスゲームの更新手続きを行う．
+ * 衝突判定を実装しやすくするため，
+ * futureMinoオブジェクトや
+ * minoVxVyVrVDrop変数を使用し，
+ * 条件を満たしたときのみ
+ * テトロミノの更新を行う．
+ *
+ * @param なし
+ * @return なし
+ */
 
 void Tetris::update()
 {
@@ -477,11 +726,24 @@ void Tetris::update()
     this->frameCounter++;
 }
 
+/**
+ * isMinoMovable()メソッド
+ *
+ * テトロミノが移動できるかを判定する．
+ * 移動後（未来）のテトロミノの一部が
+ * 盤面上のブロックと接触してる場合，
+ * 移動不可とみなす．
+ *
+ * @param futureMino 仮移動したMinoオブジェクト
+ * @return true false 移動可能ならtrue，そうでなければfalse
+ */
+
 bool Tetris::isMinoMovable(Mino* futureMino)
 {
     futureMino->rotMino(futureMino->block);
     for (int i = 0; i < NUM; i++)
     {
+        // 移動先の盤面が1（ブロック）ならfalseを返却
         if (this->board->getBlock(futureMino->block[i]->x+futureMino->x, futureMino->block[i]->y+futureMino->y))
         {
             return false;
@@ -491,6 +753,16 @@ bool Tetris::isMinoMovable(Mino* futureMino)
     return true;
 }
 
+/**
+ * action()メソッド
+ *
+ * プレイヤーの操作を受け付ける．
+ * また，テトロミノの自動落下も判定する．
+ *
+ * @param なし
+ * @return なし
+ */
+
 void Tetris::action()
 {
     if (KeyPressed(KEY_INPUT_LEFT))  this->minoVx = -1;
@@ -499,20 +771,49 @@ void Tetris::action()
     if (KeyPressed(KEY_INPUT_Z))     this->minoVr = -1;
     if (KeyPressed(KEY_INPUT_X))     this->minoVr = 1;
     if (KeyPressed(KEY_INPUT_C))     this->minoDrop = true;
+    // 20Fに1回落下する
     if ((this->frameCounter%20)==19) this->minoVy = 1;
 }
+
+/**
+ * makeNewMino()メソッド
+ *
+ * 新しいテトロミノを作成する．
+ *
+ * @param なし
+ * @return Minoオブジェクト 新規Minoオブジェクト
+ */
 
 Mino* Tetris::makeNewMino()
 {
     return new Mino(5, 2, 0, rand() % 7);
 }
 
+/**
+ * ~Tetris()デストラクタ
+ *
+ * Minoオブジェクト，Boardオブジェクトを破棄する．
+ * また，DxLibの使用終了関数も呼び出す．
+ *
+ * @param なし
+ * @return なし
+ */
 Tetris::~Tetris()
 {
     delete mino;
     delete board;
+    // DxLib終了
     DxLib_End();
 }
+
+/**
+ * WinMain()関数
+ *
+ * Tetrisクラスのコンストラクタとデストラクタを実行する．
+ *
+ * @param https://learn.microsoft.com/ja-jp/windows/win32/learnwin32/winmain--the-application-entry-point
+ * @return 0 メイン関数正常終了
+ */
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
