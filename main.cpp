@@ -47,7 +47,7 @@ void GetKey()
  * つまり，キーを押し続けても次フレームではfalseとなる．
  *
  * @param keyIndex DxLib.hで定義されたキー番号
- * @return true false 1Fにおいて，任意キーが押されたかの真偽
+ * @return true, false 1Fにおいて，任意キーが押されたかの真偽
  */
 
 bool KeyPressed(int keyIndex)
@@ -199,7 +199,7 @@ Mino::Mino(int x, int y, int rot, int shape)
 /**
  * copyMino()メソッド
  *
- * オブジェクトの複製を作成する．
+ * オブジェクトの複製を生成する．
  *
  * @param なし
  * @return Minoオブジェクト オブジェクトの複製品
@@ -272,8 +272,8 @@ void Mino::rotMino(Block* block[])
 
     //------------------------
     // 回転処理
-    // 右回転->this->rot++;
-    // 左回転->this->rot--;
+    // 右回転 -> this->rot++;
+    // 左回転 -> this->rot--;
     // マイナスの値にも対応するため，
     // (400 + this->rot) % 4を計算．
     // -> 出た値だけ右回転する．
@@ -415,7 +415,7 @@ void Board::setBlock(int x, int y)
  * 任意の座標の情報を取得する．
  *
  * @param x, y 盤面の配列番号
- * @return 0 1 指定したマスがブロックなら1，空なら0
+ * @return 0, 1 指定したマスがブロックなら1，空なら0
  */
 
 int Board::getBlock(int x, int y)
@@ -735,7 +735,7 @@ void Tetris::update()
  * 移動不可とみなす．
  *
  * @param futureMino 仮移動したMinoオブジェクト
- * @return true false 移動可能ならtrue，そうでなければfalse
+ * @return true, false 移動可能ならtrue，そうでなければfalse
  */
 
 bool Tetris::isMinoMovable(Mino* futureMino)
@@ -798,6 +798,7 @@ Mino* Tetris::makeNewMino()
  * @param なし
  * @return なし
  */
+
 Tetris::~Tetris()
 {
     delete mino;
